@@ -31,7 +31,6 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, display_name, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-
         return self.create_user(username, display_name, password, **extra_fields)
 
 
@@ -41,7 +40,6 @@ class User(AbstractBaseUser):
     birthday = models.DateField()
     county = models.CharField(max_length=10, choices=USA_COUNTIES)
     interests = models.CharField(max_length=20, choices=INTEREST_CHOICES)
-
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
