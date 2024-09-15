@@ -56,27 +56,6 @@ def user_profile(request):
     return render(request, "students/profile.html", {"user": request.user})
 
 
-def home(request):
-    users = User.objects.all()
-    return render(request, "students/home.html", {"users": users})
-
-
-def search_users(request):
-    query = request.GET.get("search")
-    location = request.GET.get("location")
-    experience = request.GET.get("experience")
-    results = User.objects.all()
-
-    if query:
-        results = results.filter(username__icontains=query)
-    if location:
-        results = results.filter(county__icontains=location)
-    if experience:
-        results = results.filter(experience__gte=experience)
-
-    return render(request, "students/search.html", {"results": results})
-
-
 @login_required
 def upload_csv(request):
     if request.method == "POST":
@@ -117,13 +96,99 @@ def connect_user(request, user_id):
 
 
 @login_required
+def home(request):
+    users = User.objects.all()
+    return render(request, "students/home.html", {"users": users})
+
+
+@login_required
+def search_users(request):
+    query = request.GET.get("query", "")
+    users = User.objects.filter(username__icontains=query)
+    users_data = [
+        {
+            "id": user.id,
+            "username": user.username,
+            "display_name": user.display_name,
+            "title": user.title,
+            "university": user.university,
+            "num_connections": user.num_connections,
+            "avatar": user.avatar.url if user.avatar else None,
+            "connected": user in request.user.connected_users.all(),
+            "activity": user.activity,
+        }
+        for user in users
+    ]
+    return JsonResponse({"users": users_data})
+
+
+@login_required
 def opportunities(request):
+    type_filter = request.GET.get("type", "")
+    location_filter = request.GET.get("location", "")
+    experience_filter = request.GET.get("experience", "")
+
     opportunities = Opportunity.objects.all()
+
+    if type_filter:
+        opportunities = opportunities.filter(type=type_filter)
+    if location_filter:
+        opportunities = opportunities.filter(location=location_filter)
+    if experience_filter:
+        opportunities = opportunities.filter(experience=experience_filter)
+
     for opp in opportunities:
         opp.tags_list = opp.tags.split(",")
+
+    opportunities_data = [
+        {
+            "id": opp.id,
+            "title": opp.title,
+            "company": opp.company,
+            "description": opp.description,
+            "tags": opp.tags.split(","),
+            "type": opp.type,
+            "location": opp.location,
+            "salary": opp.salary,
+            "experience": opp.experience,
+            "url": opp.url,
+            "saved": request.user in opp.saved_by.all(),
+            "applied": request.user in opp.applied_by.all(),
+        }
+        for opp in opportunities
+    ]
     return render(
         request, "students/opportunities.html", {"opportunities": opportunities}
     )
+
+
+@login_required
+def search_opportunities(request):
+    query = request.GET.get("query", "")
+    opportunities = Opportunity.objects.filter(
+        Q(title__icontains=query)
+        | Q(company__icontains=query)
+        | Q(description__icontains=query)
+        | Q(tags__icontains=query)
+    )
+    opportunities_data = [
+        {
+            "id": opp.id,
+            "title": opp.title,
+            "company": opp.company,
+            "description": opp.description,
+            "tags": opp.tags.split(","),
+            "type": opp.type,
+            "location": opp.location,
+            "salary": opp.salary,
+            "experience": opp.experience,
+            "url": opp.url,
+            "saved": request.user in opp.saved_by.all(),
+            "applied": request.user in opp.applied_by.all(),
+        }
+        for opp in opportunities
+    ]
+    return JsonResponse({"opportunities": opportunities_data})
 
 
 @login_required

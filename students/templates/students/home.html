@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -370,6 +369,46 @@
                     // Render profiles based on the active tab
                 });
             });
+
+            document.getElementById('searchInput').addEventListener('input', () => {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                fetch(`/search_users/?query=${searchTerm}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderProfiles(data.users);
+                    });
+            });
+
+            function renderProfiles(users) {
+                const profileList = document.getElementById('profile-list');
+                profileList.innerHTML = '';
+                users.forEach(user => {
+                    const card = document.createElement('div');
+                    card.className = 'profile-card';
+                    card.innerHTML = `
+                        <div class="header">
+                            ${user.avatar ? `<img src="${user.avatar}" alt="${user.username}">` : `<div class="avatar">${user.username.slice(0, 2).toUpperCase()}</div>`}
+                            <h2>${user.display_name}</h2>
+                        </div>
+                        <div class="content">
+                            <p>${user.title}</p>
+                            <p>${user.university}</p>
+                            <p>${user.num_connections} connections</p>
+                            ${user.activity ? `<p>${user.display_name} ${user.activity}</p>` : ''}
+                        </div>
+                        <div class="footer">
+                            <button class="${user.connected ? 'connected' : ''}" data-id="${user.id}">
+                                ${user.connected ? 'Connected' : 'Connect'}
+                            </button>
+                        </div>
+                    `;
+                    profileList.appendChild(card);
+                });
+
+                document.querySelectorAll(".profile-card button").forEach((button) => {
+                    button.addEventListener("click", handleConnect);
+                });
+            }
         });
     </script>
 </body>

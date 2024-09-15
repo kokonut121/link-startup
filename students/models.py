@@ -34,6 +34,15 @@ HIGH_SCHOOL_YEAR_CHOICES = [
 ]
 
 
+from django.db import models
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
+from django.core.validators import FileExtensionValidator
+
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, display_name, password=None, **extra_fields):
         if not username:
@@ -138,6 +147,7 @@ class Opportunity(models.Model):
     location = models.CharField(max_length=100, choices=LOCATION_CHOICES)
     salary = models.DecimalField(max_digits=10, decimal_places=2)
     experience = models.CharField(max_length=50, choices=EXPERIENCE_CHOICES)
+    url = models.URLField()  # Add URL field for the opportunity's website
     saved_by = models.ManyToManyField(
         User, related_name="saved_opportunities", blank=True
     )
