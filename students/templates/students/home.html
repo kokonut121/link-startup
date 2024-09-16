@@ -1,20 +1,415 @@
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <title>Home</title>
-  </head>
-  <body>
-    <h2>hi</h2>
-    <nav>
-      <ul>
-        <li><a href="{% url 'register' %}">Register</a></li>
-        {% if user.is_authenticated %}
-        <li><a href="{% url 'profile' %}">Profile</a></li>
-        <li><a href="{% url 'logout' %}">Logout</a></li>
-        {% else %}
-        <li><a href="{% url 'login' %}">Login</a></li>
-        {% endif %}
-      </ul>
-    </nav>
-  </body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StudentConnect - Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        .sidebar h1 {
+            color: #6d28d9;
+            margin-bottom: 30px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: absolute;
+            top: 20px;
+            left: 60px;
+            transition: left 0.3s ease;
+        }
+        .sidebar.collapsed h1 {
+            left: 10px;
+        }
+        .sidebar nav a {
+            display: flex;
+            align-items: center;
+            color: #374151;
+            text-decoration: none;
+            padding: 10px 0;
+            transition: color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar nav a:hover {
+            color: #6d28d9;
+        }
+        .sidebar nav a i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .sidebar.collapsed nav a span {
+            display: none;
+        }
+        main {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        header {
+            background-color: white;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-container {
+            position: relative;
+            width: 300px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px 10px 10px 40px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+        .search-container i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        .user-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6d28d9;
+            margin-left: 15px;
+            font-size: 1.2em;
+        }
+        .user-actions .avatar {
+            width: 32px;
+            height: 32px;
+            background-color: #6d28d9;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+        .tabs {
+            margin-top: 20px;
+            display: flex;
+            background-color: #ede9fe;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .tabs button {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #6d28d9;
+            font-weight: bold;
+        }
+        .tabs button.active {
+            background-color: white;
+        }
+        .profiles {
+            margin-top: 30px;
+        }
+        .profile-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .profile-card:hover {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .profile-card .header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .profile-card .header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+        }
+        .profile-card .header h2 {
+            margin-top: 10px;
+            font-size: 1.5em;
+        }
+        .profile-card .content {
+            text-align: center;
+            padding: 20px;
+        }
+        .profile-card .content p {
+            color: #6b7280;
+        }
+        .profile-card .footer {
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+        .profile-card button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #6d28d9;
+            color: white;
+        }
+        .profile-card button.connected {
+            background-color: white;
+            color: #6d28d9;
+            border: 1px solid #6d28d9;
+        }
+        .hamburger {
+            position: fixed;
+            top: 10px;
+            left: 20px;
+            cursor: pointer;
+            z-index: 1000;
+            color: #6d28d9;
+            font-size: 1.5em;
+        }
+        .notification-panel {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            padding: 20px;
+            display: none;
+        }
+        .notification-panel h3 {
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        .notification-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="hamburger" id="hamburger"><i class="fas fa-bars"></i></div>
+    <aside class="sidebar" id="sidebar">
+        <h1 style="top: 10px">Aloki</h1>
+        <nav style="margin-top: 30px">
+            <a href="{% url 'home' %}"><i class="fas fa-home"></i> <span>Home</span></a>
+            <a href="{% url 'opportunities' %}"><i class="fas fa-briefcase"></i> <span>Opportunities</span></a>
+            <a href="#"><i class="fas fa-comment"></i> <span>Messages</span></a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> <span>Profile</span></a>
+                <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+            {% else %}
+                <a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> <span>Login</span></a>
+            {% endif %}
+        </nav>
+    </aside>
+    <main>
+        <header>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search profiles..." />
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="user-actions">
+                <button id="notificationBtn"><i class="fas fa-bell"></i></button>
+                <button><i class="fas fa-comment"></i></button>
+                <span class="avatar">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                    {% else %}
+                        {{ user.username|slice:":2"|upper }}
+                    {% endif %}
+                </span>
+            </div>
+        </header>
+        <div class="notification-panel" id="notificationPanel">
+            <h3>Recent Notifications</h3>
+            <div class="notification-item">New internship opportunity at Google</div>
+            <div class="notification-item">Your application was viewed by Amazon</div>
+        </div>
+        <section class="tabs">
+            <button class="active" data-tab="grow">Grow</button>
+            <button data-tab="catch-up">Catch Up</button>
+        </section>
+        <section class="profiles">
+            <div class="grid-3" id="profile-list">
+                {% for user in users %}
+                    <div class="profile-card">
+                        <div class="header">
+                            {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                            {% else %}
+                                <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
+                            {% endif %}
+                            <h2>{{ user.display_name }}</h2>
+                        </div>
+                        <div class="content">
+                            <p>{{ user.title }}</p>
+                            <p>{{ user.university }}</p>
+                            <p>{{ user.num_connections }} connections</p>
+                            {% if user.activity %}
+                                <p>{{ user.display_name }} {{ user.activity }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="footer">
+                            <button class="{% if user in request.user.connected_users.all %}connected{% endif %}" data-id="{{ user.id }}">
+                                {% if user in request.user.connected_users.all %}
+                                    Connected
+                                {% else %}
+                                    Connect
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+    <script>
+        function handleConnect(event) {
+            const id = parseInt(event.currentTarget.dataset.id);
+            const button = event.currentTarget;
+            fetch(`/connect/${id}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"),
+                },
+                body: JSON.stringify({}),
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.connected !== undefined) {
+                    button.classList.toggle("connected", data.connected);
+                    button.textContent = data.connected ? "Connected" : "Connect";
+                    // Update the number of connections if needed
+                }
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === name + "=") {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll(".profile-card button").forEach((button) => {
+                button.addEventListener("click", handleConnect);
+            });
+
+            const notificationBtn = document.getElementById("notificationBtn");
+            const notificationPanel = document.getElementById("notificationPanel");
+            notificationBtn.addEventListener("click", () => {
+                notificationPanel.style.display = notificationPanel.style.display === "block" ? "none" : "block";
+            });
+
+            document.addEventListener("click", (event) => {
+                if (!notificationBtn.contains(event.target) && !notificationPanel.contains(event.target)) {
+                    notificationPanel.style.display = "none";
+                }
+            });
+
+            const hamburger = document.getElementById("hamburger");
+            const sidebar = document.getElementById("sidebar");
+            hamburger.addEventListener("click", () => {
+                sidebar.classList.toggle("collapsed");
+            });
+
+            document.querySelectorAll(".tabs button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    document.querySelectorAll(".tabs button").forEach((btn) => btn.classList.remove("active"));
+                    button.classList.add("active");
+                    // Render profiles based on the active tab
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', () => {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                fetch(`/search_users/?query=${searchTerm}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderProfiles(data.users);
+                    });
+            });
+
+            function renderProfiles(users) {
+                const profileList = document.getElementById('profile-list');
+                profileList.innerHTML = '';
+                users.forEach(user => {
+                    const card = document.createElement('div');
+                    card.className = 'profile-card';
+                    card.innerHTML = `
+                        <div class="header">
+                            ${user.avatar ? `<img src="${user.avatar}" alt="${user.username}">` : `<div class="avatar">${user.username.slice(0, 2).toUpperCase()}</div>`}
+                            <h2>${user.display_name}</h2>
+                        </div>
+                        <div class="content">
+                            <p>${user.title}</p>
+                            <p>${user.university}</p>
+                            <p>${user.num_connections} connections</p>
+                            ${user.activity ? `<p>${user.display_name} ${user.activity}</p>` : ''}
+                        </div>
+                        <div class="footer">
+                            <button class="${user.connected ? 'connected' : ''}" data-id="${user.id}">
+                                ${user.connected ? 'Connected' : 'Connect'}
+                            </button>
+                        </div>
+                    `;
+                    profileList.appendChild(card);
+                });
+
+                document.querySelectorAll(".profile-card button").forEach((button) => {
+                    button.addEventListener("click", handleConnect);
+                });
+            }
+        });
+    </script>
+</body>
 </html>
