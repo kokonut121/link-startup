@@ -104,7 +104,9 @@ def home(request):
 @login_required
 def search_users(request):
     query = request.GET.get("query", "")
-    users = User.objects.filter(username__icontains=query)
+    users = User.objects.filter(
+        Q(username__icontains=query)
+    )
     users_data = [
         {
             "id": user.id,
