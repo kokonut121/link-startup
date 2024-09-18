@@ -36,7 +36,7 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 auth_login(request, user)
-                return redirect("profile")
+                return redirect("home")
             else:
                 logger.debug("Invalid username or password")
                 form.add_error(None, "Invalid username or password")
