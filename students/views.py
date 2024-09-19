@@ -57,6 +57,12 @@ def user_profile(request):
 
 
 @login_required
+def other_user_profile(request, user_id):
+    req_user = get_object_or_404(User, id=user_id);
+    return render(request, "students/profile.html", {"user": req_user})
+
+
+@login_required
 def upload_csv(request):
     if request.method == "POST":
         form = CSVUploadForm(request.POST, request.FILES)
