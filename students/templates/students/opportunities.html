@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,29 +21,33 @@
         min-height: 100vh;
       }
       .sidebar {
-        width: 250px;
+        width: 180px;
         background-color: white;
-        padding: 20px;
+        padding-left: 20px;
+        padding-top: 10px;
         box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         transition: width 0.3s ease;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       .sidebar.collapsed {
         width: 60px;
       }
       .sidebar h1 {
         color: #6d28d9;
-        margin-bottom: 30px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        position: absolute;
-        top: 20px;
-        left: 60px;
-        transition: left 0.3s ease;
+        transition: transform 0.3s ease;
       }
       .sidebar.collapsed h1 {
-        left: 10px;
+        transform: translateX(-70px);
+      }
+      .sidebar nav {
+        width: 100%;
+        margin-top: 30px;
       }
       .sidebar nav a {
         display: flex;
@@ -56,8 +61,6 @@
         text-overflow: ellipsis;
       }
       .sidebar nav a:hover {
-        top: 100px;
-
         color: #6d28d9;
       }
       .sidebar nav a i {
@@ -73,7 +76,6 @@
         overflow-y: auto;
       }
       header {
-        border-radius: 8px;
         background-color: white;
         padding: 15px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -245,20 +247,19 @@
       .hamburger {
         position: fixed;
         top: 10px;
-        left: 20px; /* Moved 10px further to the left */
+        left: 20px;
         cursor: pointer;
         z-index: 1000;
         color: #6d28d9;
         font-size: 1.5em;
       }
-
       .opportunity-card .apply {
         background-color: white;
         color: #6d28d9;
         border: 1px solid #6d28d9;
         transition: background-color 0.3s, color 0.3s;
-    }
-    
+      }
+   
     .opportunity-card .apply.applied {
         background-color: #6d28d9;
         color: white;
@@ -268,8 +269,8 @@
   <body>
     <div class="hamburger" id="hamburger"><i class="fas fa-bars"></i></div>
     <aside class="sidebar" id="sidebar">
-      <h1 style="top: 10px">Aloki</h1>
-      <nav style="margin-top: 30px">
+      <h1>Aloki</h1>
+      <nav>
         <a href="{% url 'home' %}"
           ><i class="fas fa-home"></i> <span>Home</span></a
         >
@@ -395,6 +396,180 @@
       </section>
     </main>
     <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".connect-button").forEach((button) => {
+          button.addEventListener("click", handleConnect);
+        });
+        const notificationBtn = document.getElementById("notificationBtn");
+        const notificationPanel = document.getElementById("notificationPanel");
+        notificationBtn.addEventListener("click", () => {
+          notificationPanel.style.display =
+            notificationPanel.style.display === "block" ? "none" : "block";
+        });
+        document.addEventListener("click", (event) => {
+          if (
+            !notificationBtn.contains(event.target) &&
+            !notificationPanel.contains(event.target)
+          ) {
+            notificationPanel.style.display = "none";
+          }
+        });
+        const hamburger = document.getElementById("hamburger");
+        const sidebar = document.getElementById("sidebar");
+        hamburger.addEventListener("click", () => {
+          sidebar.classList.toggle("collapsed");
+        });
+        document.querySelectorAll(".tabs button").forEach((button) => {
+          button.addEventListener("click", () => {
+            document
+              .querySelectorAll(".tabs button")
+              .forEach((btn) => btn.classList.remove("active"));
+            button.classList.add("active");
+            const tab = button.getAttribute("data-tab");
+            if (tab === "recent") {
+              document.getElementById("recent-section").style.display = "grid";
+              document.getElementById("saved-section").style.display =
+                "none";
+              document.getElementById("applied-section").style.display =
+                "none";
+            } else if (tab === "saved") {
+              document.getElementById("recent-section").style.display = "none";
+              document.getElementById("saved-section").style.display ="grid";
+              document.getElementById("applied-section").style.display =
+              "none";
+            } else if (tab === "applied") {
+                document.getElementById("recent-section").style.display = "none";
+                document.getElementById("saved-section").style.display = "none";
+                document.getElementById("applied-section").style.display =
+                "grid";
+            }
+            });
+        });
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", handleSearch);
+      });
+      function handleConnect(event) {
+        const button = event.target;
+        const userId = button.getAttribute("data-id");
+        fetch(`/connect/${userId}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.connected) {
+              button.classList.add("connected");
+              button.textContent = "Connected";
+              moveToCatchUp(button);
+            } else {
+              button.classList.remove("connected");
+              button.textContent = "Connect";
+              moveToGrow(button);
+            }
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+      function moveToCatchUp(button) {
+        const card = button.closest(".profile-card");
+        document.getElementById("catch-up-section").appendChild(card);
+      }
+      function moveToGrow(button) {
+        const card = button.closest(".profile-card");
+        document.getElementById("grow-section").appendChild(card);
+      }
+      function handleSearch(event) {
+        const query = event.target.value;
+        fetch(`/search_users/?query=${query}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            const growSection = document.getElementById("grow-section");
+            const catchUpSection = document.getElementById("catch-up-section");
+            growSection.innerHTML = "";
+            catchUpSection.innerHTML = "";
+            data.users.forEach((user) => {
+              const card = document.createElement("div");
+              card.classList.add("profile-card");
+              const header = document.createElement("div");
+              header.classList.add("header");
+              if (user.avatar) {
+                const img = document.createElement("img");
+                img.src = user.avatar;
+                img.alt = user.username;
+                header.appendChild(img);
+              } else {
+                const avatar = document.createElement("div");
+                avatar.classList.add("avatar");
+                avatar.textContent = user.username.slice(0, 2).toUpperCase();
+                header.appendChild(avatar);
+              }
+              const h2 = document.createElement("h2");
+              h2.textContent = user.display_name;
+              header.appendChild(h2);
+              card.appendChild(header);
+              const content = document.createElement("div");
+              content.classList.add("content");
+              const title = document.createElement("p");
+              title.textContent = user.title || "";
+              content.appendChild(title);
+              const university = document.createElement("p");
+              university.textContent = user.university || "";
+              content.appendChild(university);
+              const connections = document.createElement("p");
+              connections.textContent = `${user.num_connections} connections`;
+              content.appendChild(connections);
+              if (user.activity) {
+                const activity = document.createElement("p");
+                activity.textContent = `${user.display_name} ${user.activity}`;
+                content.appendChild(activity);
+              }
+              card.appendChild(content);
+              const footer = document.createElement("div");
+              footer.classList.add("footer");
+              const button = document.createElement("button");
+              button.classList.add("connect-button");
+              button.setAttribute("data-id", user.id);
+              button.textContent = user.connected ? "Connected" : "Connect";
+              if (user.connected) {
+                button.classList.add("connected");
+              }
+              button.addEventListener("click", handleConnect);
+              footer.appendChild(button);
+              card.appendChild(footer);
+              if (user.connected) {
+                catchUpSection.appendChild(card);
+              } else {
+                growSection.appendChild(card);
+              }
+            });
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+          const cookies = document.cookie.split(";");
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+              cookieValue = decodeURIComponent(
+                cookie.substring(name.length + 1)
+              );
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+    </script>
+    <script>
       document.addEventListener('DOMContentLoaded', function () {
         const tabs = document.querySelectorAll('.tabs button');
         const opportunityList = document.getElementById('opportunity-list');
@@ -404,7 +579,7 @@
             experience: document.getElementById('experience'),
         };
         const searchInput = document.getElementById('searchInput');
-    
+   
         function fetchOpportunities() {
             const activeTab = document.querySelector('.tabs button.active').dataset.tab;
             const params = new URLSearchParams({
@@ -414,7 +589,7 @@
                 tab: activeTab,
                 query: searchInput.value,
             });
-    
+   
             fetch(`/opportunities/?${params.toString()}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -454,7 +629,7 @@
                 attachEventListeners();
             });
         }
-    
+   
         function attachEventListeners() {
             document.querySelectorAll('.save').forEach((button) => {
                 button.addEventListener('click', function () {
@@ -475,7 +650,7 @@
                             this.querySelector('i').classList.remove('fas');
                             this.querySelector('i').classList.add('far');
                         }
-    
+   
                         // If currently in "saved" tab, refetch opportunities
                         if (document.querySelector('.tabs button.active').dataset.tab === 'saved') {
                             fetchOpportunities();
@@ -483,7 +658,7 @@
                     });
                 });
             });
-    
+   
             document.querySelectorAll('.apply').forEach((button) => {
                 button.addEventListener('click', function () {
                     const oppId = this.dataset.id;
@@ -503,7 +678,7 @@
                             this.textContent = 'Apply Now';
                             this.classList.remove('applied');
                         }
-    
+   
                         // If currently in "applied" tab, refetch opportunities
                         if (document.querySelector('.tabs button.active').dataset.tab === 'applied') {
                             fetchOpportunities();
@@ -512,7 +687,7 @@
                 });
             });
         }
-    
+   
         tabs.forEach((tab) => {
             tab.addEventListener('click', function () {
                 tabs.forEach((t) => t.classList.remove('active'));
@@ -520,13 +695,13 @@
                 fetchOpportunities();
             });
         });
-    
+   
         Object.values(filters).forEach((filter) => {
             filter.addEventListener('change', fetchOpportunities);
         });
-    
+   
         searchInput.addEventListener('input', fetchOpportunities);
-    
+   
         fetchOpportunities();
     });
     </script>

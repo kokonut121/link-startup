@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,29 +22,33 @@
         min-height: 100vh;
       }
       .sidebar {
-        width: 250px;
+        width: 180px;
         background-color: white;
-        padding: 20px;
+        padding-left: 20px;
+        padding-top: 10px;
         box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         transition: width 0.3s ease;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       .sidebar.collapsed {
         width: 60px;
       }
       .sidebar h1 {
         color: #6d28d9;
-        margin-bottom: 30px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        position: absolute;
-        top: 20px;
-        left: 60px;
-        transition: left 0.3s ease;
+        transition: transform 0.3s ease;
       }
       .sidebar.collapsed h1 {
-        left: 10px;
+        transform: translateX(-70px);
+      }
+      .sidebar nav {
+        width: 100%;
+        margin-top: 30px;
       }
       .sidebar nav a {
         display: flex;
@@ -231,8 +236,8 @@
   <body>
     <div class="hamburger" id="hamburger"><i class="fas fa-bars"></i></div>
     <aside class="sidebar" id="sidebar">
-      <h1 style="top: 10px">Aloki</h1>
-      <nav style="margin-top: 30px">
+      <h1>Aloki</h1>
+      <nav>
         <a href="{% url 'home' %}"
           ><i class="fas fa-home"></i> <span>Home</span></a
         >
@@ -374,7 +379,6 @@
               .querySelectorAll(".tabs button")
               .forEach((btn) => btn.classList.remove("active"));
             button.classList.add("active");
-
             const tab = button.getAttribute("data-tab");
             if (tab === "grow") {
               document.getElementById("grow-section").style.display = "grid";
@@ -387,15 +391,12 @@
             }
           });
         });
-
         const searchInput = document.getElementById("searchInput");
         searchInput.addEventListener("input", handleSearch);
       });
-
       function handleConnect(event) {
         const button = event.target;
         const userId = button.getAttribute("data-id");
-
         fetch(`/connect/${userId}/`, {
           method: "POST",
           headers: {
@@ -417,20 +418,16 @@
           })
           .catch((error) => console.error("Error:", error));
       }
-
       function moveToCatchUp(button) {
         const card = button.closest(".profile-card");
         document.getElementById("catch-up-section").appendChild(card);
       }
-
       function moveToGrow(button) {
         const card = button.closest(".profile-card");
         document.getElementById("grow-section").appendChild(card);
       }
-
       function handleSearch(event) {
         const query = event.target.value;
-
         fetch(`/search_users/?query=${query}`, {
           method: "GET",
           headers: {
@@ -441,17 +438,13 @@
           .then((data) => {
             const growSection = document.getElementById("grow-section");
             const catchUpSection = document.getElementById("catch-up-section");
-
             growSection.innerHTML = "";
             catchUpSection.innerHTML = "";
-
             data.users.forEach((user) => {
               const card = document.createElement("div");
               card.classList.add("profile-card");
-
               const header = document.createElement("div");
               header.classList.add("header");
-
               if (user.avatar) {
                 const img = document.createElement("img");
                 img.src = user.avatar;
@@ -463,39 +456,29 @@
                 avatar.textContent = user.username.slice(0, 2).toUpperCase();
                 header.appendChild(avatar);
               }
-
               const h2 = document.createElement("h2");
               h2.textContent = user.display_name;
               header.appendChild(h2);
-
               card.appendChild(header);
-
               const content = document.createElement("div");
               content.classList.add("content");
-
               const title = document.createElement("p");
               title.textContent = user.title || "";
               content.appendChild(title);
-
               const university = document.createElement("p");
               university.textContent = user.university || "";
               content.appendChild(university);
-
               const connections = document.createElement("p");
               connections.textContent = `${user.num_connections} connections`;
               content.appendChild(connections);
-
               if (user.activity) {
                 const activity = document.createElement("p");
                 activity.textContent = `${user.display_name} ${user.activity}`;
                 content.appendChild(activity);
               }
-
               card.appendChild(content);
-
               const footer = document.createElement("div");
               footer.classList.add("footer");
-
               const button = document.createElement("button");
               button.classList.add("connect-button");
               button.setAttribute("data-id", user.id);
@@ -504,10 +487,8 @@
                 button.classList.add("connected");
               }
               button.addEventListener("click", handleConnect);
-
               footer.appendChild(button);
               card.appendChild(footer);
-
               if (user.connected) {
                 catchUpSection.appendChild(card);
               } else {
@@ -517,7 +498,6 @@
           })
           .catch((error) => console.error("Error:", error));
       }
-
       function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== "") {
