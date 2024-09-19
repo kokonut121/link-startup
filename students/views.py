@@ -55,6 +55,10 @@ def logout_view(request):
 def user_profile(request):
     return render(request, "students/profile.html", {"user": request.user})
 
+@login_required
+def other_user_profile(request, user_id):
+    req_user = get_object_or_404(User, id=user_id)
+    return render(request, "students/profile.html", {"user": req_user})
 
 @login_required
 def upload_csv(request):
@@ -97,8 +101,12 @@ def connect_user(request, user_id):
 
 @login_required
 def home(request):
-    users = User.objects.all()
-    return render(request, "students/home.html", {"users": users})
+    connected_users = request.user.connected_users.all()
+    unconnected_users = User.objects.exclude(id__in=connected_users).exclude(id=request.user.id)
+    return render(request, "students/home.html", {
+        "connected_users": connected_users,
+        "unconnected_users": unconnected_users
+    })
 
 
 @login_required

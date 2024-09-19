@@ -269,8 +269,8 @@
             <button data-tab="catch-up">Catch Up</button>
         </section>
         <section class="profiles">
-            <div class="grid-3" id="profile-list">
-                {% for user in users %}
+            <div class="grid-3" id="grow-section">
+                {% for user in unconnected_users %}
                     <div class="profile-card">
                         <div class="header">
                             {% if user.avatar %}
@@ -289,12 +289,35 @@
                             {% endif %}
                         </div>
                         <div class="footer">
-                            <button class="{% if user in request.user.connected_users.all %}connected{% endif %}" data-id="{{ user.id }}">
-                                {% if user in request.user.connected_users.all %}
-                                    Connected
-                                {% else %}
-                                    Connect
-                                {% endif %}
+                            <button class="connect-button" data-id="{{ user.id }}">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="grid-3" id="catch-up-section" style="display: none;">
+                {% for user in connected_users %}
+                    <div class="profile-card">
+                        <div class="header">
+                            {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                            {% else %}
+                                <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
+                            {% endif %}
+                            <h2><a href="/profile/{{user.id}}/">{{user.display_name}}</a></h2>
+                        </div>
+                        <div class="content">
+                            <p>{{ user.title }}</p>
+                            <p>{{ user.university }}</p>
+                            <p>{{ user.num_connections }} connections</p>
+                            {% if user.activity %}
+                                <p>{{ user.display_name }} {{ user.activity }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="footer">
+                            <button class="connect-button connected" data-id="{{ user.id }}">
+                                Connected
                             </button>
                         </div>
                     </div>
@@ -303,25 +326,76 @@
         </section>
     </main>
     <script>
-        function handleConnect(event) {
-            const id = parseInt(event.currentTarget.dataset.id);
-            const button = event.currentTarget;
-            fetch(`/connect/${id}/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken"),
-                },
-                body: JSON.stringify({}),
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.connected !== undefined) {
-                    button.classList.toggle("connected", data.connected);
-                    button.textContent = data.connected ? "Connected" : "Connect";
-                    // Update the number of connections if needed
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll(".connect-button").forEach((button) => {
+                button.addEventListener("click", handleConnect);
+            });
+            const notificationBtn = document.getElementById("notificationBtn");
+            const notificationPanel = document.getElementById("notificationPanel");
+            notificationBtn.addEventListener("click", () => {
+                notificationPanel.style.display = notificationPanel.style.display === "block" ? "none" : "block";
+            });
+            document.addEventListener("click", (event) => {
+                if (!notificationBtn.contains(event.target) && !notificationPanel.contains(event.target)) {
+                    notificationPanel.style.display = "none";
                 }
             });
+            const hamburger = document.getElementById("hamburger");
+            const sidebar = document.getElementById("sidebar");
+            hamburger.addEventListener("click", () => {
+                sidebar.classList.toggle("collapsed");
+            });
+            document.querySelectorAll(".tabs button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    document.querySelectorAll(".tabs button").forEach((btn) => btn.classList.remove("active"));
+                    button.classList.add("active");
+
+                    const tab = button.getAttribute("data-tab");
+                    if (tab === "grow") {
+                        document.getElementById("grow-section").style.display = "grid";
+                        document.getElementById("catch-up-section").style.display = "none";
+                    } else {
+                        document.getElementById("grow-section").style.display = "none";
+                        document.getElementById("catch-up-section").style.display = "grid";
+                    }
+                });
+            });
+        });
+
+        function handleConnect(event) {
+            const button = event.target;
+            const userId = button.getAttribute("data-id");
+
+            fetch(`/connect/${userId}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.connected) {
+                    button.classList.add("connected");
+                    button.textContent = "Connected";
+                    moveToCatchUp(button);
+                } else {
+                    button.classList.remove("connected");
+                    button.textContent = "Connect";
+                    moveToGrow(button);
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+
+        function moveToCatchUp(button) {
+            const card = button.closest(".profile-card");
+            document.getElementById("catch-up-section").appendChild(card);
+        }
+
+        function moveToGrow(button) {
+            const card = button.closest(".profile-card");
+            document.getElementById("grow-section").appendChild(card);
         }
 
         function getCookie(name) {
@@ -330,7 +404,7 @@
                 const cookies = document.cookie.split(";");
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === name + "=") {
+                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                         break;
                     }
@@ -338,78 +412,6 @@
             }
             return cookieValue;
         }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            document.querySelectorAll(".profile-card button").forEach((button) => {
-                button.addEventListener("click", handleConnect);
-            });
-
-            const notificationBtn = document.getElementById("notificationBtn");
-            const notificationPanel = document.getElementById("notificationPanel");
-            notificationBtn.addEventListener("click", () => {
-                notificationPanel.style.display = notificationPanel.style.display === "block" ? "none" : "block";
-            });
-
-            document.addEventListener("click", (event) => {
-                if (!notificationBtn.contains(event.target) && !notificationPanel.contains(event.target)) {
-                    notificationPanel.style.display = "none";
-                }
-            });
-
-            const hamburger = document.getElementById("hamburger");
-            const sidebar = document.getElementById("sidebar");
-            hamburger.addEventListener("click", () => {
-                sidebar.classList.toggle("collapsed");
-            });
-
-            document.querySelectorAll(".tabs button").forEach((button) => {
-                button.addEventListener("click", () => {
-                    document.querySelectorAll(".tabs button").forEach((btn) => btn.classList.remove("active"));
-                    button.classList.add("active");
-                    // Render profiles based on the active tab
-                });
-            });
-
-            document.getElementById('searchInput').addEventListener('input', () => {
-                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                fetch(`/search_users/?query=${searchTerm}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        renderProfiles(data.users);
-                    });
-            });
-
-            function renderProfiles(users) {
-                const profileList = document.getElementById('profile-list');
-                profileList.innerHTML = '';
-                users.forEach(user => {
-                    const card = document.createElement('div');
-                    card.className = 'profile-card';
-                    card.innerHTML = `
-                        <div class="header">
-                            ${user.avatar ? `<img src="${user.avatar}" alt="${user.username}">` : `<div class="avatar">${user.username.slice(0, 2).toUpperCase()}</div>`}
-                            <h2>${user.display_name}</h2>
-                        </div>
-                        <div class="content">
-                            <p>${user.title}</p>
-                            <p>${user.university}</p>
-                            <p>${user.num_connections} connections</p>
-                            ${user.activity ? `<p>${user.display_name} ${user.activity}</p>` : ''}
-                        </div>
-                        <div class="footer">
-                            <button class="${user.connected ? 'connected' : ''}" data-id="${user.id}">
-                                ${user.connected ? 'Connected' : 'Connect'}
-                            </button>
-                        </div>
-                    `;
-                    profileList.appendChild(card);
-                });
-
-                document.querySelectorAll(".profile-card button").forEach((button) => {
-                    button.addEventListener("click", handleConnect);
-                });
-            }
-        });
     </script>
 </body>
 </html>
