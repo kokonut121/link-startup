@@ -251,6 +251,18 @@
         color: #6d28d9;
         font-size: 1.5em;
       }
+
+      .opportunity-card .apply {
+        background-color: white;
+        color: #6d28d9;
+        border: 1px solid #6d28d9;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .opportunity-card .apply.applied {
+        background-color: #6d28d9;
+        color: white;
+    }
     </style>
   </head>
   <body>
@@ -383,196 +395,140 @@
       </section>
     </main>
     <script>
-      let opportunities = [];
-
-      function fetchOpportunities() {
-        fetch("/opportunities/")
-          .then((response) => response.json())
-          .then((data) => {
-            opportunities = data.opportunities;
-            renderOpportunities(opportunities);
-          });
-      }
-
-      function handleSave(event) {
-        const id = parseInt(event.currentTarget.dataset.id);
-        fetch(`/save_opportunity/${id}/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCookie("csrftoken"),
-          },
-          body: JSON.stringify({}),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.saved !== undefined) {
-              event.currentTarget
-                .querySelector("i")
-                .classList.toggle("fa-bookmark", data.saved);
-              event.currentTarget
-                .querySelector("i")
-                .classList.toggle("fa-bookmark-o", !data.saved);
-            }
-          });
-      }
-
-      function handleApply(event) {
-        const id = parseInt(event.currentTarget.dataset.id);
-        fetch(`/apply_opportunity/${id}/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCookie("csrftoken"),
-          },
-          body: JSON.stringify({}),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.applied) {
-              event.currentTarget.textContent = "Applied";
-            }
-          });
-      }
-
-      function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== "") {
-          const cookies = document.cookie.split(";");
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === name + "=") {
-              cookieValue = decodeURIComponent(
-                cookie.substring(name.length + 1)
-              );
-              break;
-            }
-          }
-        }
-        return cookieValue;
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        document.querySelectorAll(".save").forEach((button) => {
-          button.addEventListener("click", handleSave);
-        });
-
-        document.querySelectorAll(".apply").forEach((button) => {
-          button.addEventListener("click", handleApply);
-        });
-
-        const notificationBtn = document.getElementById("notificationBtn");
-        const notificationPanel = document.getElementById("notificationPanel");
-        notificationBtn.addEventListener("click", () => {
-          notificationPanel.style.display =
-            notificationPanel.style.display === "block" ? "none" : "block";
-        });
-
-        document.addEventListener("click", (event) => {
-          if (
-            !notificationBtn.contains(event.target) &&
-            !notificationPanel.contains(event.target)
-          ) {
-            notificationPanel.style.display = "none";
-          }
-        });
-
-        const hamburger = document.getElementById("hamburger");
-        const sidebar = document.getElementById("sidebar");
-        hamburger.addEventListener("click", () => {
-          sidebar.classList.toggle("collapsed");
-        });
-
-        document.querySelectorAll(".tabs button").forEach((button) => {
-          button.addEventListener("click", () => {
-            document
-              .querySelectorAll(".tabs button")
-              .forEach((btn) => btn.classList.remove("active"));
-            button.classList.add("active");
-            // Render opportunities based on the active tab
-          });
-        });
-
-        document.querySelectorAll(".filters select").forEach((select) => {
-          select.addEventListener("change", () => {
-            const type = document.getElementById("type").value;
-            const location = document.getElementById("location").value;
-            const experience = document.getElementById("experience").value;
-
-            fetch(
-              `/opportunities/?type=${type}&location=${location}&experience=${experience}`
-            )
-              .then((response) => response.json())
-              .then((data) => {
-                renderOpportunities(data.opportunities);
-              });
-          });
-        });
-
-        document.getElementById("searchInput").addEventListener("input", () => {
-          const searchTerm = document
-            .getElementById("searchInput")
-            .value.toLowerCase();
-          fetch(`/search_opportunities/?query=${searchTerm}`)
+      document.addEventListener('DOMContentLoaded', function () {
+        const tabs = document.querySelectorAll('.tabs button');
+        const opportunityList = document.getElementById('opportunity-list');
+        const filters = {
+            type: document.getElementById('type'),
+            location: document.getElementById('location'),
+            experience: document.getElementById('experience'),
+        };
+        const searchInput = document.getElementById('searchInput');
+    
+        function fetchOpportunities() {
+            const activeTab = document.querySelector('.tabs button.active').dataset.tab;
+            const params = new URLSearchParams({
+                type: filters.type.value,
+                location: filters.location.value,
+                experience: filters.experience.value,
+                tab: activeTab,
+                query: searchInput.value,
+            });
+    
+            fetch(`/opportunities/?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
             .then((response) => response.json())
             .then((data) => {
-              renderOpportunities(data.opportunities);
+                opportunityList.innerHTML = '';
+                data.opportunities.forEach((opportunity) => {
+                    const card = document.createElement('div');
+                    card.classList.add('opportunity-card');
+                    card.innerHTML = `
+                      <div class="header">
+                        <h2>${opportunity.title}</h2>
+                        <p>${opportunity.company} • ${opportunity.location} • $${opportunity.salary}/year</p>
+                      </div>
+                      <div class="content">
+                        <p>${opportunity.description}</p>
+                        <div class="tags">
+                          ${opportunity.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                      </div>
+                      <div class="footer">
+                        <a href="${opportunity.url}" target="_blank" class="learn-more">Learn More</a>
+                        <div>
+                          <button class="save" data-id="${opportunity.id}">
+                            <i class="fa${opportunity.saved ? 's' : 'r'} fa-bookmark"></i>
+                          </button>
+                          <button class="apply ${opportunity.applied ? 'applied' : ''}" data-id="${opportunity.id}">
+                            ${opportunity.applied ? 'Applied' : 'Apply Now'}
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                    opportunityList.appendChild(card);
+                });
+                attachEventListeners();
+            });
+        }
+    
+        function attachEventListeners() {
+            document.querySelectorAll('.save').forEach((button) => {
+                button.addEventListener('click', function () {
+                    const oppId = this.dataset.id;
+                    fetch(`/save_opportunity/${oppId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.saved) {
+                            this.querySelector('i').classList.add('fas');
+                            this.querySelector('i').classList.remove('far');
+                        } else {
+                            this.querySelector('i').classList.remove('fas');
+                            this.querySelector('i').classList.add('far');
+                        }
+    
+                        // If currently in "saved" tab, refetch opportunities
+                        if (document.querySelector('.tabs button.active').dataset.tab === 'saved') {
+                            fetchOpportunities();
+                        }
+                    });
+                });
+            });
+    
+            document.querySelectorAll('.apply').forEach((button) => {
+                button.addEventListener('click', function () {
+                    const oppId = this.dataset.id;
+                    fetch(`/apply_opportunity/${oppId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.applied) {
+                            this.textContent = 'Applied';
+                            this.classList.add('applied');
+                        } else {
+                            this.textContent = 'Apply Now';
+                            this.classList.remove('applied');
+                        }
+    
+                        // If currently in "applied" tab, refetch opportunities
+                        if (document.querySelector('.tabs button.active').dataset.tab === 'applied') {
+                            fetchOpportunities();
+                        }
+                    });
+                });
+            });
+        }
+    
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', function () {
+                tabs.forEach((t) => t.classList.remove('active'));
+                this.classList.add('active');
+                fetchOpportunities();
             });
         });
-      });
-
-      function renderOpportunities(filteredOpps) {
-        const opportunityList = document.getElementById("opportunity-list");
-        opportunityList.innerHTML = "";
-
-        filteredOpps.forEach((opp) => {
-          const card = document.createElement("div");
-          card.className = "opportunity-card";
-          card.innerHTML = `
-                    <div class="header">
-                        <h2>${opp.title}</h2>
-                        <p>${opp.company} • ${opp.location} • $${
-            opp.salary
-          }k/year</p>
-                    </div>
-                    <div class="content">
-                        <p>${opp.description}</p>
-                        <div class="tags">
-                            ${opp.tags
-                              .map((tag) => `<span class="tag">${tag}</span>`)
-                              .join("")}
-                        </div>
-                    </div>
-                    <div class="footer">
-                        <a href="${
-                          opp.url
-                        }" target="_blank" class="learn-more">Learn More</a>
-                        <div>
-                            <button class="save" data-id="${opp.id}">
-                                <i class="fa${
-                                  opp.saved ? "s" : "r"
-                                } fa-bookmark"></i>
-                            </button>
-                            <button class="apply" data-id="${opp.id}">${
-            opp.applied ? "Applied" : "Apply Now"
-          }</button>
-                        </div>
-                    </div>
-                `;
-          opportunityList.appendChild(card);
+    
+        Object.values(filters).forEach((filter) => {
+            filter.addEventListener('change', fetchOpportunities);
         });
-
-        // Add event listeners
-        document.querySelectorAll(".save").forEach((button) => {
-          button.addEventListener("click", handleSave);
-        });
-
-        document.querySelectorAll(".apply").forEach((button) => {
-          button.addEventListener("click", handleApply);
-        });
-      }
-
-      fetchOpportunities();
+    
+        searchInput.addEventListener('input', fetchOpportunities);
+    
+        fetchOpportunities();
+    });
     </script>
   </body>
 </html>

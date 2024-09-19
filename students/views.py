@@ -146,6 +146,8 @@ def opportunities(request):
     type_filter = request.GET.get("type", "")
     location_filter = request.GET.get("location", "")
     experience_filter = request.GET.get("experience", "")
+    tab_filter = request.GET.get("tab", "recent")
+    query = request.GET.get("query", "")
 
     opportunities = Opportunity.objects.all()
 
@@ -155,13 +157,66 @@ def opportunities(request):
         opportunities = opportunities.filter(location=location_filter)
     if experience_filter:
         opportunities = opportunities.filter(experience=experience_filter)
+    if query:
+        opportunities = opportunities.filter(
+            Q(title__icontains=query) |
+            Q(company__icontains=query) |
+            Q(description__icontains=query) |
+            Q(tags__icontains=query)
+        )
+    if tab_filter == "saved":
+        opportunities = opportunities.filter(saved_by=request.user)
+    elif tab_filter == "applied":
+        opportunities = opportunities.filter(applied_by=request.user)
 
-    for opp in opportunities:
-        opp.tags_list = opp.tags.split(",")
+    opportunities_data = [
+        {
+            "id": opp.id,
+            "title": opp.title,
+            "company": opp.company,
+            "description": opp.description,
+            "tags": opp.tags.split(","),
+            "type": opp.type,
+            "location": opp.location,
+            "salary": opp.salary,
+            "experience": opp.experience,
+            "url": opp.url,
+            "saved": request.user in opp.saved_by.all(),
+            "applied": request.user in opp.applied_by.all(),
+        }
+        for opp in opportunities
+    ]
 
-    return render(
-        request, "students/opportunities.html", {"opportunities": opportunities}
-    )
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({"opportunities": opportunities_data})
+
+    return render(request, "students/opportunities.html", {"opportunities": opportunities})
+
+@login_required
+def save_opportunity(request, opp_id):
+    if request.method == "POST":
+        opportunity = get_object_or_404(Opportunity, id=opp_id)
+        if request.user in opportunity.saved_by.all():
+            opportunity.saved_by.remove(request.user)
+            saved = False
+        else:
+            opportunity.saved_by.add(request.user)
+            saved = True
+        return JsonResponse({"saved": saved})
+    return JsonResponse({"error": "Invalid request method"}, status=400)
+
+@login_required
+def apply_opportunity(request, opp_id):
+    if request.method == "POST":
+        opportunity = get_object_or_404(Opportunity, id=opp_id)
+        if request.user in opportunity.applied_by.all():
+            opportunity.applied_by.remove(request.user)
+            applied = False
+        else:
+            opportunity.applied_by.add(request.user)
+            applied = True
+        return JsonResponse({"applied": applied})
+    return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
 @login_required
@@ -193,24 +248,3 @@ def search_opportunities(request):
     return JsonResponse({"opportunities": opportunities_data})
 
 
-@login_required
-def save_opportunity(request, opp_id):
-    if request.method == "POST":
-        opportunity = get_object_or_404(Opportunity, id=opp_id)
-        if request.user in opportunity.saved_by.all():
-            opportunity.saved_by.remove(request.user)
-            saved = False
-        else:
-            opportunity.saved_by.add(request.user)
-            saved = True
-        return JsonResponse({"saved": saved})
-    return JsonResponse({"error": "Invalid request method"}, status=400)
-
-
-@login_required
-def apply_opportunity(request, opp_id):
-    if request.method == "POST":
-        opportunity = get_object_or_404(Opportunity, id=opp_id)
-        opportunity.applied_by.add(request.user)
-        return JsonResponse({"applied": True})
-    return JsonResponse({"error": "Invalid request method"}, status=400)
