@@ -278,7 +278,7 @@
                             {% else %}
                                 <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
                             {% endif %}
-                            <h2>{{ user.display_name }}</h2>
+                            <h2><a href="/profile/{{user.id}}/">{{user.display_name}}</a></h2>
                         </div>
                         <div class="content">
                             <p>{{ user.title }}</p>
@@ -390,6 +390,7 @@
                             ${user.avatar ? `<img src="${user.avatar}" alt="${user.username}">` : `<div class="avatar">${user.username.slice(0, 2).toUpperCase()}</div>`}
                             <h2>${user.display_name}</h2>
                         </div>
+                        <a href="/profile/${user.id}/">${user.display_name}</a>
                         <div class="content">
                             <p>${user.title}</p>
                             <p>${user.university}</p>
