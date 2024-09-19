@@ -17,7 +17,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 # Application definition
@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "students",
-
 ]
 
 MIDDLEWARE = [
@@ -117,12 +116,12 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Redirect to profile page after login
-LOGIN_REDIRECT_URL = 'profile'
+LOGIN_REDIRECT_URL = "profile"
 
 # Redirect to login page if not authenticated
-LOGIN_URL = 'login'
+LOGIN_URL = "login"
 
-AUTH_USER_MODEL = 'students.User'
+AUTH_USER_MODEL = "students.User"
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")

@@ -36,7 +36,7 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 auth_login(request, user)
-                return redirect("profile")
+                return redirect("home")
             else:
                 logger.debug("Invalid username or password")
                 form.add_error(None, "Invalid username or password")
@@ -58,7 +58,7 @@ def user_profile(request):
 
 @login_required
 def other_user_profile(request, user_id):
-    req_user = get_object_or_404(User, id=user_id);
+    req_user = get_object_or_404(User, id=user_id)
     return render(request, "students/profile.html", {"user": req_user})
 
 
@@ -103,8 +103,15 @@ def connect_user(request, user_id):
 
 @login_required
 def home(request):
-    users = User.objects.all()
-    return render(request, "students/home.html", {"users": users})
+    connected_users = request.user.connected_users.all()
+    unconnected_users = User.objects.exclude(id__in=connected_users).exclude(
+        id=request.user.id
+    )
+    return render(
+        request,
+        "students/home.html",
+        {"connected_users": connected_users, "unconnected_users": unconnected_users},
+    )
 
 
 @login_required
@@ -112,7 +119,11 @@ def search_users(request):
     query = request.GET.get("query", "")
     users = User.objects.filter(
         Q(username__icontains=query)
-    )
+        | Q(display_name__icontains=query)
+        | Q(title__icontains=query)
+        | Q(university__icontains=query)
+    ).exclude(id=request.user.id)
+
     users_data = [
         {
             "id": user.id,
@@ -148,23 +159,6 @@ def opportunities(request):
     for opp in opportunities:
         opp.tags_list = opp.tags.split(",")
 
-    opportunities_data = [
-        {
-            "id": opp.id,
-            "title": opp.title,
-            "company": opp.company,
-            "description": opp.description,
-            "tags": opp.tags.split(","),
-            "type": opp.type,
-            "location": opp.location,
-            "salary": opp.salary,
-            "experience": opp.experience,
-            "url": opp.url,
-            "saved": request.user in opp.saved_by.all(),
-            "applied": request.user in opp.applied_by.all(),
-        }
-        for opp in opportunities
-    ]
     return render(
         request, "students/opportunities.html", {"opportunities": opportunities}
     )

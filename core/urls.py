@@ -13,7 +13,7 @@ from students.views import (
     save_opportunity,
     apply_opportunity,
     search_opportunities,
-    other_user_profile
+    other_user_profile,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -24,15 +24,19 @@ urlpatterns = [
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
     path("profile/", user_profile, name="profile"),
-    path("search/", search_users, name="search"),
+    path(
+        "search_users/", search_users, name="search_users"
+    ),  # New path for user search,
     path("upload-csv/", upload_csv, name="upload_csv"),
     path("admin/", admin.site.urls),
     path("connect/<int:user_id>/", connect_user, name="connect_user"),
     path("opportunities/", opportunities, name="opportunities"),
-    path('save_opportunity/<int:opp_id>/', save_opportunity, name='save_opportunity'),
-    path('apply_opportunity/<int:opp_id>/', apply_opportunity, name='apply_opportunity'),
-    path('search_opportunities/', search_opportunities, name='search_opportunities'),
-    path('profile/<int:user_id>/', other_user_profile, name="profile"),
+    path("save_opportunity/<int:opp_id>/", save_opportunity, name="save_opportunity"),
+    path(
+        "apply_opportunity/<int:opp_id>/", apply_opportunity, name="apply_opportunity"
+    ),
+    path("search_opportunities/", search_opportunities, name="search_opportunities"),
+    path("profile/<int:user_id>/", other_user_profile, name="profile"),
 ]
 
 if settings.DEBUG:
