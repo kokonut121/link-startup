@@ -53,13 +53,13 @@ def logout_view(request):
 
 @login_required
 def user_profile(request):
-    return render(request, "students/profile.html", {"user": request.user})
+    return render(request, "aarushfe/profile.html", {"user": request.user})
 
 
 @login_required
 def other_user_profile(request, user_id):
     req_user = get_object_or_404(User, id=user_id)
-    return render(request, "students/profile.html", {"user": req_user})
+    return render(request, "aarushfe/profile.html", {"user": req_user})
 
 
 @login_required
